@@ -123,6 +123,7 @@ namespace Microsoft.AspNet.SignalR.Infrastructure
 
         public override void Write(string value)
         {
+            // this override exists as an optimization to avoid too many calls to Write(char)
             var sourceIndex = 0;
             var sourceLength = value.Length;
             while (sourceIndex < sourceLength)
@@ -139,6 +140,30 @@ namespace Microsoft.AspNet.SignalR.Infrastructure
                 }
 
                 value.CopyTo(sourceIndex, _textArray, _textEnd, count);
+                sourceIndex += count;
+                _textEnd += count;
+            }
+        }
+
+        public override void Write(char[] value, int index, int length)
+        {
+            // this override exists as an optimization to avoid too many calls to Write(char)
+            var sourceIndex = index;
+            var sourceLength = index + length;
+            while (sourceIndex < sourceLength)
+            {
+                if (_textLength == _textEnd)
+                {
+                    Encode(false);
+                }
+
+                var count = sourceLength - sourceIndex;
+                if (count > _textLength - _textEnd)
+                {
+                    count = _textLength - _textEnd;
+                }
+
+                Array.Copy(value, sourceIndex, _textArray, _textEnd, count);
                 sourceIndex += count;
                 _textEnd += count;
             }
